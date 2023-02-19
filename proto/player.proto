@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = ".;pb";
+
+service PlayerService {
+  rpc Play(Song) returns (Song) {}
+  rpc Pause(Song) returns (Song) {}
+  rpc Next(Song) returns (Song) {}
+  rpc Prev(Song) returns (Song) {}
+  rpc AddSong(Song) returns (Song) {}
+}
+
+message PlayRequest {
+}
+message PlayResponse {
+}
+
+message PauseRequest {
+}
+message PauseResponse {
+}
+message NextRequest {}
+message NextResponse{}
+
+message PrevRequest{}
+message PrevResponse{}
+
+message AddSongRequest{}
+message AddSongResponse{}
+
+message Song {
+  song info = 1;
+}
+
+message song {
+  string name = 1;
+  int32 duration = 2;
+  string status = 3;
+}

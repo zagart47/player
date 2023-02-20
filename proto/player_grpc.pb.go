@@ -26,7 +26,7 @@ type PlayerServiceClient interface {
 	Pause(ctx context.Context, in *Song, opts ...grpc.CallOption) (*Song, error)
 	Next(ctx context.Context, in *Song, opts ...grpc.CallOption) (*Song, error)
 	Prev(ctx context.Context, in *Song, opts ...grpc.CallOption) (*Song, error)
-	AddSong(ctx context.Context, in *Song, opts ...grpc.CallOption) (*Song, error)
+	AddSong(ctx context.Context, opts ...grpc.CallOption) (PlayerService_AddSongClient, error)
 }
 
 type playerServiceClient struct {
@@ -73,13 +73,38 @@ func (c *playerServiceClient) Prev(ctx context.Context, in *Song, opts ...grpc.C
 	return out, nil
 }
 
-func (c *playerServiceClient) AddSong(ctx context.Context, in *Song, opts ...grpc.CallOption) (*Song, error) {
-	out := new(Song)
-	err := c.cc.Invoke(ctx, "/proto.PlayerService/AddSong", in, out, opts...)
+func (c *playerServiceClient) AddSong(ctx context.Context, opts ...grpc.CallOption) (PlayerService_AddSongClient, error) {
+	stream, err := c.cc.NewStream(ctx, &PlayerService_ServiceDesc.Streams[0], "/proto.PlayerService/AddSong", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &playerServiceAddSongClient{stream}
+	return x, nil
+}
+
+type PlayerService_AddSongClient interface {
+	Send(*AddSongRequest) error
+	CloseAndRecv() (*AddSongResponse, error)
+	grpc.ClientStream
+}
+
+type playerServiceAddSongClient struct {
+	grpc.ClientStream
+}
+
+func (x *playerServiceAddSongClient) Send(m *AddSongRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *playerServiceAddSongClient) CloseAndRecv() (*AddSongResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(AddSongResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // PlayerServiceServer is the server API for PlayerService service.
@@ -90,7 +115,7 @@ type PlayerServiceServer interface {
 	Pause(context.Context, *Song) (*Song, error)
 	Next(context.Context, *Song) (*Song, error)
 	Prev(context.Context, *Song) (*Song, error)
-	AddSong(context.Context, *Song) (*Song, error)
+	AddSong(PlayerService_AddSongServer) error
 	mustEmbedUnimplementedPlayerServiceServer()
 }
 
@@ -110,8 +135,8 @@ func (UnimplementedPlayerServiceServer) Next(context.Context, *Song) (*Song, err
 func (UnimplementedPlayerServiceServer) Prev(context.Context, *Song) (*Song, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Prev not implemented")
 }
-func (UnimplementedPlayerServiceServer) AddSong(context.Context, *Song) (*Song, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddSong not implemented")
+func (UnimplementedPlayerServiceServer) AddSong(PlayerService_AddSongServer) error {
+	return status.Errorf(codes.Unimplemented, "method AddSong not implemented")
 }
 func (UnimplementedPlayerServiceServer) mustEmbedUnimplementedPlayerServiceServer() {}
 
@@ -198,22 +223,30 @@ func _PlayerService_Prev_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PlayerService_AddSong_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Song)
-	if err := dec(in); err != nil {
+func _PlayerService_AddSong_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(PlayerServiceServer).AddSong(&playerServiceAddSongServer{stream})
+}
+
+type PlayerService_AddSongServer interface {
+	SendAndClose(*AddSongResponse) error
+	Recv() (*AddSongRequest, error)
+	grpc.ServerStream
+}
+
+type playerServiceAddSongServer struct {
+	grpc.ServerStream
+}
+
+func (x *playerServiceAddSongServer) SendAndClose(m *AddSongResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *playerServiceAddSongServer) Recv() (*AddSongRequest, error) {
+	m := new(AddSongRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
-	if interceptor == nil {
-		return srv.(PlayerServiceServer).AddSong(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.PlayerService/AddSong",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PlayerServiceServer).AddSong(ctx, req.(*Song))
-	}
-	return interceptor(ctx, in, info, handler)
+	return m, nil
 }
 
 // PlayerService_ServiceDesc is the grpc.ServiceDesc for PlayerService service.
@@ -239,11 +272,13 @@ var PlayerService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Prev",
 			Handler:    _PlayerService_Prev_Handler,
 		},
+	},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "AddSong",
-			Handler:    _PlayerService_AddSong_Handler,
+			StreamName:    "AddSong",
+			Handler:       _PlayerService_AddSong_Handler,
+			ClientStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto/player.proto",
 }

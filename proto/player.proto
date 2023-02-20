@@ -9,7 +9,7 @@ service PlayerService {
   rpc Pause(Song) returns (Song) {}
   rpc Next(Song) returns (Song) {}
   rpc Prev(Song) returns (Song) {}
-  rpc AddSong(Song) returns (Song) {}
+  rpc AddSong(stream AddSongRequest) returns (AddSongResponse) {}
 }
 
 message PlayRequest {
@@ -27,12 +27,15 @@ message NextResponse{}
 message PrevRequest{}
 message PrevResponse{}
 
-message AddSongRequest{}
+message AddSongRequest{
+  bytes chunk = 1;
+}
 message AddSongResponse{}
 
 message Song {
   song info = 1;
 }
+
 
 message song {
   string name = 1;

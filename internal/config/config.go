@@ -12,4 +12,4 @@ func NewSqlConnect(driverName string, dataSourceName string) SQLConnect {
 	}
 }
 
-var SqlConnect = NewSqlConnect("sqlite3", "internal/repository/files.db")
+var SqlConnect = NewSqlConnect("sqlite3", "internal/repo/music.db")

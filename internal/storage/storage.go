@@ -27,7 +27,7 @@ func NewFile(name string) File {
 	}
 }
 
-func (f File) CheckDuration() {
+func (f *File) CheckDuration() {
 	var t float64
 	open, err := os.Open(f.Path)
 	if err != nil {

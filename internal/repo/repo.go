@@ -1,8 +1,10 @@
 package repo
 
 import (
+	"container/list"
 	"database/sql"
 	"errors"
+	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"player/internal/config"
 	"player/internal/music"
@@ -46,7 +48,7 @@ func (r *SQLiteRepository) ShowAllSongs() (music.Playlist, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := r.db.Query("SELECT (song, duration) FROM playlist")
+	rows, err := r.db.Query("SELECT song, duration FROM playlist")
 	if err != nil {
 		return music.Playlist{}, err
 	}
@@ -77,10 +79,10 @@ func (r *SQLiteRepository) CheckFileName(filename string) error {
 	}
 	for _, v := range all {
 		if v.Name == filename {
-			return nil
+			return errors.New("file already have")
 		}
 	}
-	return errors.New("file already have")
+	return nil
 }
 
 func (r *SQLiteRepository) Update(filename string, duration int) error {
@@ -89,4 +91,18 @@ func (r *SQLiteRepository) Update(filename string, duration int) error {
 		return err
 	}
 	return nil
+}
+
+func NewPlaylist() *list.List {
+	r := NewSQLiteRepository(DB)
+	songs, err := r.ShowAllSongs()
+	if err != nil {
+		return nil
+	}
+	l := list.New()
+	for _, v := range songs {
+		l.PushBack(fmt.Sprintf("Song: %s; Duration: %d", v.Name, v.Duration))
+	}
+	return l
+
 }
